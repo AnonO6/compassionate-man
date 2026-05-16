@@ -43,130 +43,145 @@ You pass the lit name on the wall — the ghost you killed before you understood
 ```
 compassionate-man/
 ├── src/
-│   ├── main.ts                 # Entry point, game bootstrap
-│   ├── game/
-│   │   ├── Game.ts             # Core game loop, state machine (ARCADE → GLITCH → EXIT)
-│   │   ├── Clock.ts            # Fixed-timestep loop, delta timing
-│   │   └── InputManager.ts     # Keyboard/touch input handling
-│   ├── maze/
-│   │   ├── Maze.ts             # Maze structure, tile grid, collision
-│   │   ├── MazeRenderer.ts     # Wall rendering, name engravings
-│   │   ├── WallNames.ts        # Name generation, placement, glow state
-│   │   └── mazeData.ts         # Level layouts (tile maps)
+│   ├── main.ts                 # Phaser game config, boot
+│   ├── scenes/
+│   │   ├── BootScene.ts        # Asset preloading, splash
+│   │   ├── ArcadeScene.ts      # Phase 1: classic Pac-Man gameplay
+│   │   ├── GlitchTransition.ts # The moment between phases — visual/audio break
+│   │   └── ExitScene.ts        # Phase 3: procession to exit, name engraving
 │   ├── entities/
-│   │   ├── Entity.ts           # Base entity class (position, velocity, tile snapping)
-│   │   ├── Player.ts           # Pac-Man movement, dot eating, state
-│   │   ├── Ghost.ts            # Ghost AI, state (CHASE | FLEE | RESTORED | FOLLOWING)
-│   │   ├── GhostPersonality.ts # Per-ghost behavior profiles + memory fragments
-│   │   └── Dot.ts              # Regular dots and memory-pellets
+│   │   ├── Player.ts           # Pac-Man: grid movement, dot eating, state
+│   │   ├── Ghost.ts            # Ghost: AI modes (CHASE | SCATTER | FLEE | RESTORED | FOLLOWING)
+│   │   └── Dot.ts              # Regular dots + memory pellets (phase-aware behavior)
 │   ├── systems/
-│   │   ├── PhaseManager.ts     # Drives phase transitions, triggers glitch
-│   │   ├── CollisionSystem.ts  # Entity-entity and entity-tile collision
-│   │   ├── GlitchSystem.ts     # Visual/audio glitch effects
-│   │   └── MemorySystem.ts     # Memory fragment display, ghost restoration logic
-│   ├── rendering/
-│   │   ├── Renderer.ts         # Canvas2D orchestrator
-│   │   ├── SpriteSheet.ts      # Sprite atlas loading and slicing
-│   │   ├── Particles.ts        # Particle effects (glitch sparks, name glow)
-│   │   └── PostFX.ts           # Screen-level effects (static, color shift, scanlines)
+│   │   ├── PhaseManager.ts     # ARCADE → GLITCH → EXIT state machine, event bus
+│   │   ├── GhostAI.ts          # Per-ghost targeting: Blinky/Pinky/Inky/Clyde behaviors
+│   │   ├── MemorySystem.ts     # Memory fragment display, ghost restoration logic
+│   │   └── WallNames.ts        # Name generation, placement on tilemap, glow state
+│   ├── fx/
+│   │   ├── GlitchFX.ts         # Orchestrates Phaser filters: Pixelate, ColorMatrix, camera shake
+│   │   ├── AtmosphereFX.ts     # Progressive palette shifts, vignette, bloom per restoration
+│   │   └── NameGlow.ts         # Glow filter on individual wall-name text objects
 │   ├── audio/
-│   │   ├── AudioManager.ts     # Sound loading, playback, crossfade
-│   │   └── MusicLayers.ts      # Layered music system (drop/add layers per phase)
+│   │   └── MusicLayers.ts      # Layered music: add/remove stems per phase + restoration count
 │   ├── narrative/
-│   │   ├── fragments.ts        # Memory fragment content (text, imagery per ghost)
-│   │   └── Ending.ts           # Exit sequence, name engraving animation
+│   │   ├── fragments.ts        # Memory fragment content per ghost (text, image key, sound key)
+│   │   └── Ending.ts           # Exit sequence, name engraving tween, final hold
+│   ├── data/
+│   │   ├── mazeMap.json        # Tiled-format tilemap (walls, dots, pellets, spawn points)
+│   │   └── names.ts            # Name pool for wall engravings
 │   └── utils/
-│       ├── math.ts             # Vector ops, lerp, grid helpers
-│       └── random.ts           # Seeded RNG for name placement
+│       └── grid.ts             # Tile↔pixel conversion, direction helpers
 ├── public/
-│   ├── index.html
 │   └── assets/
-│       ├── sprites/            # Sprite sheets
-│       ├── audio/              # Music layers, SFX
-│       └── fonts/              # Monospace/engraving font
+│       ├── tilemaps/           # Tiled .json exports
+│       ├── sprites/            # Sprite sheets (player, ghosts, dots, pellets)
+│       ├── audio/              # Music stems, SFX
+│       └── fonts/              # Bitmap font for wall engravings
+├── index.html
 ├── package.json
 ├── tsconfig.json
-├── vite.config.ts
-└── README.md
+└── vite.config.ts
 ```
 
 ### Tech Stack
 
 | Layer | Choice | Why |
 |-------|--------|-----|
-| Language | TypeScript | Type safety for complex state machines |
-| Rendering | HTML5 Canvas 2D | No framework overhead, pixel-level control for glitch effects |
-| Bundler | Vite | Fast HMR, zero-config TS support |
-| Audio | Web Audio API | Layered music, real-time effects |
-| Deployment | Static HTML | Single `index.html` — runs anywhere |
+| Language | TypeScript | Type safety for state machines and phase logic |
+| Game framework | Phaser 4 | Scenes, tilemaps, arcade physics, filters, audio — all built in |
+| Tilemap editor | Tiled | Industry-standard maze design, native Phaser import |
+| Glitch effects | Phaser Filters | Pixelate, ColorMatrix, Glow, Bloom, Vignette — no custom shaders needed |
+| Bundler | Vite | Fast HMR, `npm create @phaserjs/game@latest` scaffolds Vite by default |
+| Deployment | Static HTML | `vite build` → runs anywhere |
 
-No game engine. No React. No dependencies beyond Vite and TypeScript. The game is ~20 files and a canvas.
+### What Phaser Handles vs. What We Build
+
+| Phaser gives us | We build |
+|----------------|----------|
+| Game loop, delta timing | Phase state machine (ARCADE → GLITCH → EXIT) |
+| Scene management + transitions | Glitch transition choreography |
+| Tilemap loading, rendering, collision | Maze design in Tiled, wall-name overlay system |
+| Arcade physics, grid snapping | Ghost AI targeting (Blinky/Pinky/Inky/Clyde) |
+| Sprite animation | Memory fragment display |
+| Filter system (Glow, Pixelate, ColorMatrix) | Atmosphere progression logic |
+| Audio manager, Web Audio | Layered music stem system |
+| Keyboard + touch input | Narrative pacing, emotional design |
+| Camera effects (shake, flash, fade) | The compassion beat |
 
 ---
 
 ## Implementation Plan
 
-### Milestone 1 — Playable Pac-Man
-*Get a dot-eating, ghost-dodging game running on canvas.*
+### Milestone 1 — The Faithful Clone
+*A Pac-Man that feels like Pac-Man.*
 
-- [ ] Project scaffold: Vite + TypeScript, canvas element, game loop with fixed timestep
-- [ ] Maze system: tile-based grid from a 2D array, wall rendering, collision detection
-- [ ] Player: grid-snapped movement, keyboard input, dot consumption
-- [ ] Dots: regular dot placement, score tracking, "all dots eaten" detection
-- [ ] Ghosts (x4): basic AI (chase/scatter), collision with player = death
-- [ ] Power pellets: temporary ghost vulnerability, ghost consumption, respawn
-- [ ] Game flow: lives, restart on death, level clear on all dots eaten
-- [ ] Wall names: faint engraved text on wall tiles (randomly placed, ignorable)
+- [ ] Scaffold with `npm create @phaserjs/game@latest`, Vite + TypeScript
+- [ ] Design maze tilemap in Tiled: walls, paths, dot positions, ghost spawn, player spawn
+- [ ] `BootScene`: preload tilemap, sprite sheets, audio
+- [ ] `ArcadeScene`: load tilemap, create tile layers, enable collision on walls
+- [ ] Player: grid-snapped movement using arcade physics, keyboard input (arrows + WASD)
+- [ ] Dots: place as sprites on path tiles, destroy on overlap, track count
+- [ ] Ghosts (x4): sprite creation, basic chase/scatter AI with per-ghost targeting
+- [ ] Power pellets: 4 placed in corners, eating one sets ghosts to FLEE mode, overlap = consume ghost
+- [ ] Ghost respawn: consumed ghosts return from ghost house after delay
+- [ ] Game flow: 3 lives, death animation, restart, level clear when all dots eaten
+- [ ] Wall names: faint bitmap-font text objects placed on wall tiles (seeded random, low alpha)
+- [ ] HUD: score, lives display
 
-**Exit criterion:** A complete, boring, faithful Pac-Man clone with names on the walls.
+**Exit criterion:** A complete, faithful Pac-Man with names on the walls that nobody looks at.
 
-### Milestone 2 — The Glitch
-*Break the game open.*
+### Milestone 2 — The Break
+*The first ghost kill after which nothing is the same.*
 
-- [ ] Phase state machine: `ARCADE → GLITCH → EXIT`, driven by first ghost kill
-- [ ] Glitch trigger: on first ghost consumption, fire a visual+audio disruption
-- [ ] Glitch effects: screen shake, brief static/noise overlay, color palette shift, scanlines
-- [ ] Name illumination: the killed ghost's name on the wall lights up (glow + pulse)
-- [ ] Music shift: drop a layer from the music, add low ambient tone
-- [ ] Ghost doesn't respawn: the consumed ghost is gone, its absence is felt
-- [ ] Subtle atmosphere change: palette desaturates slightly, dot-eating sound softens
+- [ ] `PhaseManager`: event-driven state machine, listens for `ghost-consumed` event
+- [ ] First ghost kill triggers phase transition — ghost does NOT respawn this time
+- [ ] `GlitchTransition`: camera shake → Pixelate filter ramps up then down → ColorMatrix desaturates → brief static overlay sprite → screen flash
+- [ ] The killed ghost's name on the wall: find the text object, tween alpha to 1, apply Glow filter, pulse animation
+- [ ] Audio shift: fade out arcade music, crossfade to sparse ambient stem, silence the dot-eat SFX briefly
+- [ ] Post-glitch atmosphere: ColorMatrix stays slightly desaturated, subtle Vignette filter on camera
+- [ ] Remaining ghosts continue as normal — but the player now knows something
 
-**Exit criterion:** The moment of the first ghost kill feels like something broke — not a bug, not a feature, something in between.
+**Exit criterion:** The moment feels uncanny. Not a crash, not a cutscene. A fracture.
 
 ### Milestone 3 — Memory & Restoration
-*Transform power pellets into instruments of compassion.*
+*Power pellets become something else entirely.*
 
-- [ ] Memory pellets: power pellets visually change (glow differently, pulse slower)
-- [ ] Memory fragments: touching a ghost after eating a memory pellet shows a fragment — a line of text, a brief image, a sound — unique to that ghost
-- [ ] Ghost restoration: after memory fragment plays, ghost transitions from CHASE → RESTORED → FOLLOWING
-- [ ] Following behavior: restored ghosts trail the player at a respectful distance, no longer threatening
-- [ ] Ghost personality: each ghost has a name, a fragment, a backstory implied in 2-3 seconds of content
-- [ ] Progressive atmosphere: each restoration shifts the palette warmer, adds a music layer back
+- [ ] After glitch: power pellets visually transform — new sprite frame, slower pulse tween, warmer color
+- [ ] Memory pellets no longer grant FLEE mode; instead they grant a `hasMemory` flag on the player
+- [ ] Ghost overlap while `hasMemory` is true: freeze gameplay, display memory fragment (text + image overlay + unique sound), tween ghost from CHASE → RESTORED
+- [ ] `fragments.ts`: 3 unique fragments, one per remaining ghost — a line of text, a tone, implied in 2-3 seconds
+- [ ] Restored ghost behavior: stop AI, follow player at distance using path-following, no longer lethal
+- [ ] Restored ghost visual: sprite tint shifts to warm, Glow filter with low intensity
+- [ ] Progressive atmosphere: each restoration shifts ColorMatrix warmer, reduces Vignette, adds a music stem back
+- [ ] If player touches a ghost WITHOUT `hasMemory`: normal death (the maze is still dangerous)
 
-**Exit criterion:** The player can restore all remaining ghosts and feel the maze transform around them.
+**Exit criterion:** Restoring the last ghost feels like the maze exhaling.
 
-### Milestone 4 — The Exit
-*Let them leave.*
+### Milestone 4 — The Way Out
+*Let them leave together.*
 
-- [ ] Exit gate: hidden exit in the maze, revealed after first restoration (or after all ghosts restored)
-- [ ] Procession: player moves toward exit, restored ghosts follow in a loose line
-- [ ] Name engraving: player's name (entered at start? generated?) is carved into the wall in an animation
-- [ ] Unrestored ghosts: if any ghosts were killed and not restored, they remain — their names glow on the wall as you pass
-- [ ] Final beat: the screen holds on the maze for a moment after the player leaves. The names. The silence. Then reset.
-- [ ] Maze reset: the maze returns to Phase 1, ready for the next player. The new player's engraved name is now on the wall.
+- [ ] Exit tile: a tile in the maze that is visually a wall in Phase 1, becomes a path after first restoration
+- [ ] Exit marker: subtle visual cue (faint light, different tile) — no arrow, no prompt
+- [ ] Player reaches exit tile with restored ghosts following: trigger `ExitScene`
+- [ ] `ExitScene`: camera pans slowly, restored ghosts settle into a line, movement stops
+- [ ] Name engraving animation: player's name (entered or generated) types itself into the wall, etched font
+- [ ] The killed ghost's name: still glowing on the wall as you pass. Camera lingers on it for 2 seconds.
+- [ ] Unrestored ghosts (if player killed more than one before glitch): still roaming in the background, names lit
+- [ ] Final hold: the maze sits empty for 3 seconds. Names. Silence.
+- [ ] Maze reset: transition back to `ArcadeScene`, the engraved name is now part of the wall names
 
 **Exit criterion:** The ending is quiet, earned, and slightly haunting.
 
-### Milestone 5 — Polish & Feel
-*Make it feel like a real thing.*
+### Milestone 5 — Polish & Persistence
+*Make it feel finished.*
 
-- [ ] Sound design: dot-eat sounds, ghost approach sounds, glitch SFX, ambient layers
-- [ ] Layered music system: 3-4 stems that add/remove based on phase and restoration count
-- [ ] Touch/mobile support: swipe controls, responsive canvas sizing
-- [ ] Name persistence: store previous players' names in localStorage, show them on walls in future runs
-- [ ] Screen transitions: fade-in on start, hold on ending
-- [ ] Performance: ensure 60fps on mid-range devices
-- [ ] Accessibility: colorblind-safe palette shifts, screen reader announcements for key moments
+- [ ] Sound design: dot-eat SFX, ghost proximity audio (gets louder as they approach), glitch noise burst, ambient loops
+- [ ] Layered music: 3-4 stems (rhythm, melody, bass, pad) managed as separate audio objects, muted/unmuted per phase
+- [ ] Touch/mobile: swipe input, responsive canvas scaling via Phaser's Scale Manager (`FIT` mode)
+- [ ] Name persistence: store player names in localStorage, load them into wall names on future runs
+- [ ] Screen transitions: fade-in on boot, scene transitions using camera fade
+- [ ] Accessibility: colorblind-safe palette (avoid red/green for ghost states), high-contrast mode option
 
 ---
 
@@ -187,7 +202,15 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. Arrow keys to move.
+Open `http://localhost:5173`. Arrow keys or WASD to move.
+
+## Building for Production
+
+```bash
+npm run build
+```
+
+Output in `dist/` — a static bundle, deployable anywhere.
 
 ---
 
