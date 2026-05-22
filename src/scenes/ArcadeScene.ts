@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { TILE_SIZE, SCALE, SCALED_TILE, PLAYER_SPEED, GHOST_SPEED, PATH_TILE } from '../consts';
+import { TILE_SIZE, SCALE, SCALED_TILE, PLAYER_SPEED, GHOST_SPEED, PATH_TILE, SPRITE_SCALE } from '../consts';
 
 interface GhostData {
   sprite: Phaser.Physics.Arcade.Sprite;
@@ -156,9 +156,14 @@ export class ArcadeScene extends Phaser.Scene {
     this.playerSpawn = spawn;
     const pos = this.tileToWorld(spawn.col, spawn.row);
     this.player = this.physics.add.sprite(pos.x, pos.y, 'pacman');
-    this.player.setScale(SCALE);
+    this.player.setScale(SPRITE_SCALE);
     this.player.setCollideWorldBounds(true);
     this.player.setDepth(10);
+    this.player.body!.setSize(SCALED_TILE * 0.8, SCALED_TILE * 0.8);
+    this.player.body!.setOffset(
+      (this.player.width - SCALED_TILE * 0.8 / SPRITE_SCALE) / 2,
+      (this.player.height - SCALED_TILE * 0.8 / SPRITE_SCALE) / 2
+    );
 
     this.physics.add.collider(this.player, this.wallLayer);
     this.physics.add.overlap(this.player, this.dots, this.eatDot, undefined, this);
@@ -180,9 +185,14 @@ export class ArcadeScene extends Phaser.Scene {
       const spawnTile = centerPaths[Math.min(i, centerPaths.length - 1)];
       const pos = this.tileToWorld(spawnTile.col, spawnTile.row);
       const sprite = this.physics.add.sprite(pos.x, pos.y, ghostNames[i]);
-      sprite.setScale(SCALE);
+      sprite.setScale(SPRITE_SCALE);
       sprite.setCollideWorldBounds(true);
       sprite.setDepth(9);
+      sprite.body!.setSize(SCALED_TILE * 0.8, SCALED_TILE * 0.8);
+      sprite.body!.setOffset(
+        (sprite.width - SCALED_TILE * 0.8 / SPRITE_SCALE) / 2,
+        (sprite.height - SCALED_TILE * 0.8 / SPRITE_SCALE) / 2
+      );
 
       this.physics.add.collider(sprite, this.wallLayer);
       this.physics.add.overlap(this.player, sprite, () => this.hitGhost(i), undefined, this);
